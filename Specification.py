@@ -22,7 +22,7 @@ class Specification:
                                     [000, 100],
                                     [200, 000],
                                     [200, 100]
-                                    ]) # TODO
+                                    ])
             
             self.elem_nodes = np.matrix([[0,1,2,3]
                                         , [1,4,5,2]
@@ -39,7 +39,7 @@ class Specification:
                                     [-52, 84],
                                     [170, 105],
                                     [117, 189]
-                                    ]) # TODO
+                                    ])
             
             self.elem_nodes = np.matrix([[0,1,2,3]
                                         , [1,4,5,2]
@@ -54,11 +54,24 @@ class Specification:
                                     , [100, 000]
                                     , [100, 100]
                                     , [000, 100]
-                                    ]) # TODO
+                                    ])
             
             self.elem_nodes = np.matrix([[0,1,2,3]
                                         ])
             self.loads = [Load(point_idx = 2, x=f, y=0)]
+            
+            self.encastres = [Encastre(point_idx = 3), Encastre(point_idx = 0)]
+            
+        elif preset == 'angledonequad':
+            self.nodes = np.matrix([[0, 0],
+                                    [85, 52],
+                                    [32, 136],
+                                    [-52, 84],
+                                    ])
+            
+            self.elem_nodes = np.matrix([[0,1,2,3]
+                                        ])
+            self.loads = [Load(point_idx = 2, x=f*.85, y=f*.52)]
             
             self.encastres = [Encastre(point_idx = 3), Encastre(point_idx = 0)]
             
@@ -82,7 +95,7 @@ class Specification:
                                     , [300, 100] # 15
                                     , [200, 100] # 16
                                     , [100, 100] # 17
-                                    ]) # TODO
+                                    ])
             
             self.elem_nodes = np.matrix([ [1,2,17,0]
                                         , [2,3,16,17]
@@ -97,3 +110,6 @@ class Specification:
             self.loads = [Load(point_idx = 9, x=f, y=f)]
             
             self.encastres = [Encastre(point_idx = 0), Encastre(point_idx = 1)]
+            
+        else:
+            raise ValueError("Unknown Specification preset name")
