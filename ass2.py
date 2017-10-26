@@ -2,63 +2,91 @@ import numpy as np
 
 from QuadElement import QuadElement
 from Material import Material
+from Specification import Specification
+
+d = 2 # dimensioality
 
 
-mat = Material(youngs_modulus = 70000, poisson_ratio = 0.3)
+# specification:
+spec = Specification('angledtwoquads')
 
-n_dims = 2;
 
-nodes = np.matrix([ [10, 10],
-                    [11, 10],
-                    [11, 11],
-                    [10, 11],
-                    [12, 10],
-                    [12, 11]
-                    ]) # TODO
+# sort encastres so that they will be removed from the matrix from right to left
+encastres = sorted(spec.encastres, key = lambda enc: enc.point_idx)
 
-n_nodes = nodes.shape[0]
 
-elem_nodes = np.matrix([[0,1,2,3]
-                        #, [1,4,5,2]
-                        ])
+n_nodes = spec.nodes.shape[0]
+n_elems = spec.elem_nodes.shape[0]
 
-n_elems = elem_nodes.shape[0]
+
+
 
 # construct array of elements
 elems = []
 for i in range(0, n_elems):
-    node_indices = np.asarray(elem_nodes)[i]
-    node_coords = nodes[np.ix_(node_indices)]
-    elems.append(QuadElement(mat, node_coords))
-
-print("=====================")
-
-print(elems[0].getLocalToGlobalCoordsMatrix())
-print("---")
+    node_indices = np.asarray(spec.elem_nodes)[i]
+    node_coords = spec.nodes[np.ix_(node_indices)]
+    elems.append(QuadElement(spec.mat, node_coords))
 
 
-stiffness = np.zeros((n_nodes * n_dims, n_nodes * n_dims))
-#stiffness = np.arange(n_nodes * n_dims * n_nodes * n_dims).reshape(n_nodes * n_dims, n_nodes * n_dims)
+#print(elems[0].getLocalToGlobalCoordsMatrix())
+#print("---")
+
+# compute global stiffness matrix
+stiffness = np.zeros((n_nodes * d, n_nodes * d))
 
 for i in range(0, n_elems):
     elem = elems[i]
     k = elem.getGlobalStiffnessMatrix()
-    assert(k.shape == (4 * n_dims, 4 * n_dims))
-    node_indices = np.asarray(elem_nodes[i])[0]
+    #print("K: " + str(k))
+    assert(k.shape == (4 * d, 4 * d))
+    node_indices = np.asarray(spec.elem_nodes[i])[0]
     coord_indices = np.empty(4 * 2, dtype=int)
     coord_indices[0::2] = node_indices * 2
     coord_indices[1::2] = node_indices * 2 + 1
     stiffness[np.ix_(coord_indices, coord_indices)] += k
-    
+
+'''   
 print("---")
-print(elems[0].getGlobalStiffnessMatrix())
-print("---")
+print("--- STIFFNESS MATRIX ---")
 print(stiffness)
+print("---")
+print("---")
+'''
+
+#Vector as large as the output dispacement vector with values pointing
+# to the origin of the displacement value in the output.
+#These might differ because applying boundary conditions changes the indexing in the dispacement vector.
+out_idx_to_point_coord_idx = np.arange(n_nodes * d)
+
+# apply boundary conditions
+load_vector = np.zeros((n_nodes, d))
+for load in spec.loads:
+    load_vector[load.point_idx,] = [load.x, load.y]
+loads = load_vector.reshape(-1, 1)
+
+for encastre in reversed(encastres):
+    coord_indices = range(encastre.point_idx * d, encastre.point_idx * d + d)
+    stiffness = np.delete(stiffness, coord_indices, 1)
+    stiffness = np.delete(stiffness, coord_indices, 0)
+    loads = np.delete(loads, coord_indices, 0)
+    out_idx_to_point_coord_idx = np.delete(out_idx_to_point_coord_idx, coord_indices, 0)
 
 
-print("---")
-print("---")
-print("---")
+# SOLVE
+displacements = np.linalg.solve(stiffness, loads)
+
+# reinsert encastre points
+final_displacements = np.zeros((n_nodes * d, 1))
+for i in range(displacements.size):
+    final_idx = out_idx_to_point_coord_idx[i]
+    final_displacements[final_idx,0] = displacements[i,0]
+
+final_displacements = final_displacements.reshape((-1, d))
+    
+print(final_displacements)
+print("modified: " + str(final_displacements * 500))
+
 
 '''
 

@@ -4,6 +4,7 @@ from MathTK import MathTK
 class QuadElement:
     dim_count = 2
     elem_count = 4
+    integration_steps = 3 # number of boxes of discretization in the approximation of an integral when using Gauss-Legendre Integration
     def __init__(self, material, global_coords):
         d = self.dim_count
         n = self.elem_count
@@ -11,23 +12,18 @@ class QuadElement:
         self.global_coords = global_coords.reshape(-1,1)
         self.T_nodal = np.matrix([[1,2],[3,4]]) # TODO: make depend on coords in the quad!
         self.K = np.identity(d*n) # local stiffness matrix
-        print("init")
-        self.getJacobian(1,1)
-        print("--\\init")
-    
-    # gives matrix to convert local x1,y1,x2,y2,x3,y3,x4,y4 into global
-    def getLocalToGlobalCoordsMatrix(self):
-        d = self.dim_count
-        n = self.elem_count
-        T_elem = np.identity(n * d);
-        for i in range(0, n):
-            T_elem[i * d : i * d + d, i * d : i * d + d] = self.T_nodal
-        return T_elem
-    
+            
     def getGlobalStiffnessMatrix(self):
-        T_elem = self.getLocalToGlobalCoordsMatrix()
-        return T_elem.transpose().dot(self.K).dot(T_elem)
+        result = MathTK.do2DimensionalGaussLegendreIntegration(self.toBeIntegrated, self.integration_steps)
+        return result
+
     
+    def toBeIntegrated(self, r, s):
+        B = self.getB(r, s)
+        D = self.material.D
+        det = self.det_J
+        t = self.material.thickness
+        return B.transpose().dot(D).dot(B) * (det * t)
     
     def getB(self, r, s):
         jacobian = self.getJacobian(r, s)
@@ -41,19 +37,17 @@ class QuadElement:
     # argument jacobian:
     # [ dx/dr  dy/dr ]
     # [ dx/ds  dy/ds ]
-    @staticmethod
-    def getA(jacobian):
+    def getA(self, jacobian):
         d = QuadElement.dim_count
         n = QuadElement.elem_count
         j = jacobian
         assert(j.shape == (d, d))
-        det = np.linalg.det(j)
-        print("J: " + str(j))
-        print("det: " +str(det))
+        #print("J: " + str(j))
+        #print("det_J: " +str(det_J))
         return np.matrix([[j[1,1], -j[0,1], 0, 0],
                             [0, 0, -j[1,0], j[0,0]],
                             [-j[1,0], j[0,0], j[1,1], j[0,1]]
-                            ]) * (1 / det)
+                            ]) * (1 / self.det_J)
     
     # not 100% sure
     def getJacobian(self, r, s):
@@ -62,10 +56,11 @@ class QuadElement:
         M = QuadElement.getM(shape_function_derivatives)
         derivatives = M.dot(self.global_coords)
         ret = derivatives.reshape(d, d)
-        print("coords: " +str(self.global_coords))
-        print("shape_function_derivatives:" + str(shape_function_derivatives))
-        print("M:" + str(M))
-        print("j: " + str(ret))
+        self.det_J = np.linalg.det(ret)
+        #print("coords: " +str(self.global_coords))
+        #print("shape_function_derivatives:" + str(shape_function_derivatives))
+        #print("M:" + str(M))
+        #print("j: " + str(ret))
         return ret
     
     @staticmethod
