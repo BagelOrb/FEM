@@ -1,10 +1,12 @@
 import numpy as np
 import math # sqrt
 import functools # reduce
+import collections
 
 from QuadElement import QuadElement
 from Material import Material
 from Specification import Specification
+import Specification
 
 d = 2 # dimensioality
 class FEM:
@@ -64,10 +66,16 @@ class FEM:
         self.loads = load_vector.reshape(-1, 1)
 
 
-        # sort encastres so that they will be removed from the matrix from right to left
-        encastres = sorted(self.spec.encastres, key = lambda enc: enc.point_idx)
-        for encastre in reversed(encastres):
-            coord_indices = range(encastre.point_idx * d, encastre.point_idx * d + d)
+        # sort boundary_conditions so that they will be removed from the matrix from right to left
+        boundary_conditions = sorted(self.spec.boundary_conditions, key = lambda enc: enc.point_idx)
+        for boundary_condition in reversed(boundary_conditions):
+            if isinstance(boundary_condition, Specification.Pinned):
+                coord_indices = range(boundary_condition.point_idx * d, boundary_condition.point_idx * d + d)
+            elif isinstance(boundary_condition, Specification.Symmetry):
+                coord_indices = boundary_condition.point_idx * d + boundary_condition.dir
+            else:
+                raise ValueError("Unknown boundary condition type.")
+                
             self.stiffness = np.delete(self.stiffness, coord_indices, 1) # delete column
             self.stiffness = np.delete(self.stiffness, coord_indices, 0) # delete row
             self.loads = np.delete(self.loads, coord_indices, 0)
@@ -77,7 +85,7 @@ class FEM:
     def solve(self):
         displacements = np.linalg.solve(self.stiffness, self.loads)
 
-        # reinsert encastre points
+        # reinsert boundary_condition points
         final_displacements = np.zeros((self.n_nodes * d, 1))
         for i in range(displacements.size):
             final_idx = self.out_idx_to_point_coord_idx[i]

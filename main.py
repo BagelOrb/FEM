@@ -5,8 +5,16 @@ from MathTK import MathTK
 from FEM import FEM 
 
 #main:
-fem = FEM(Specification('angledonequad'))
-displacements = fem.solve()
-print("displacements: " + str(displacements))
-magnitudes = MathTK.computeMagnitudes(displacements)
-print("magnitudes: " + str(magnitudes))
+def do(name):
+    print("\n\n---- " + name + " ----\n")
+    fem = FEM(Specification(name))
+    displacements = fem.solve()
+    print("displacements: \n" + str(displacements))
+    magnitudes = MathTK.computeMagnitudes(displacements)
+    print("magnitudes: \n" + str(magnitudes))
+
+#do('angledonequad')
+#do('onequad')
+
+do('ass2_try2_simple')
+

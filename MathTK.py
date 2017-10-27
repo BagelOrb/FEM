@@ -26,7 +26,7 @@ class MathTK:
     # convert matrix of coords to vector of lengths
     @staticmethod
     def computeMagnitudes(final_displacements):
-        n_nodes = final_displacements.shape[1]
+        n_nodes = final_displacements.shape[0]
         magnitude = np.zeros((n_nodes, 1))
         for i in range(n_nodes):
             displacement_coords = np.asarray(final_displacements)[i]

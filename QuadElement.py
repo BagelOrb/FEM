@@ -23,7 +23,7 @@ class QuadElement:
         D = self.material.D
         det = self.det_J
         t = self.material.thickness
-        return B.transpose().dot(D).dot(B) #* (det * t)
+        return B.transpose().dot(D).dot(B) * (det * t)
     
     def getB(self, r, s):
         jacobian = self.getJacobian(r, s)
