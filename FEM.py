@@ -1,4 +1,5 @@
 import numpy as np
+np.set_printoptions(threshold=np.nan) # print matrices fully
 import math # sqrt
 import functools # reduce
 import collections
@@ -83,6 +84,8 @@ class FEM:
 
 
     def solve(self):
+        #print("self.stiffness: \n" +str(self.stiffness))
+        #print("loads: \n" +str(self.loads))
         displacements = np.linalg.solve(self.stiffness, self.loads)
 
         # reinsert boundary_condition points

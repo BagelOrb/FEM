@@ -14,6 +14,7 @@ def do(name):
     print("displacements: \n" + str(displacements))
     magnitudes = MathTK.computeMagnitudes(displacements)
     #print("magnitudes: \n" + str(magnitudes))
+    #Plotter.plotSpec(spec)
     Plotter.plot(spec, displacements)
 
 #do('angledonequad')
