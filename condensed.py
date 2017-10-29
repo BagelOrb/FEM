@@ -1,8 +1,6 @@
 import numpy as np
 import collections
 
-from MathTK import MathTK
-
 #define boundary condition types
 Pinned = collections.namedtuple('Pinned', 'point_idx')
 Symmetry = collections.namedtuple('Symmetry', 'point_idx dir')
@@ -100,19 +98,16 @@ boundary_conditions = [   Pinned(point_idx = 1)
                         , Symmetry(point_idx = 3, dir = 0)
                         , Symmetry(point_idx = 9, dir = 0)
                         , Symmetry(point_idx = 10, dir = 0)
-                        , Symmetry(point_idx = 26, dir = 0)
-                        ]
-
-
+                        , Symmetry(point_idx = 26, dir = 0)]
 
 n_nodes = nodes.shape[0]
 n_elems = elem_nodes.shape[0]
-
 
 dim_count = 2 # dimensions
 d = 2 # dimensions
 n = 4 # nodes in a quad
 
+### main function for calculating local stiffness matrices ###
 def toBeIntegrated(global_coords, r, s):
     shape_function_derivatives_matrix = np.matrix([
         [-(1-s),0,1-s,0,(1+s),0,-(1+s),0],
@@ -128,21 +123,24 @@ def toBeIntegrated(global_coords, r, s):
     B = strain_disp_derivatives.dot(shape_function_derivatives_matrix)
     return B.transpose().dot(D).dot(B) * (det_j * thickness)
 
+### calculate Global Stiffness Matrix ###
 stiffness = np.zeros((n_nodes * d, n_nodes * d))
 for i in range(0, n_elems):
     node_indices = np.asarray(elem_nodes)[i]
     node_coords = nodes[np.ix_(node_indices)]
     global_coords = node_coords.reshape(-1,1)
 
-    k = MathTK.do2DimensionalGaussLegendreIntegration(lambda r, s: toBeIntegrated(global_coords, r, s), integration_steps)
-    
-    assert(k.shape == (4 * d, 4 * d))
+    k = np.zeros((4 * d, 4 * d))
+    (sampling_points, weights) = np.polynomial.legendre.leggauss(integration_steps)
+    for x in range(sampling_points.size):
+        for y in range(sampling_points.size):
+            k += weights[x] * weights[y] * toBeIntegrated(global_coords, sampling_points[x], sampling_points[y])
     coord_indices = np.empty(4 * 2, dtype=int)
     coord_indices[0::2] = node_indices * 2
     coord_indices[1::2] = node_indices * 2 + 1
     stiffness[np.ix_(coord_indices, coord_indices)] += k
 
-### apply boundary conditions ###
+### APPLY Boundary Conditions ###
 
 #Vector as large as the output dispacement vector with values pointing
 # to the origin of the displacement value in the output.
